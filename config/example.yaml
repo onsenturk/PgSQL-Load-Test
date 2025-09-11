@@ -1,0 +1,9 @@
+dsn: postgresql://user:password@localhost:5432/postgres
+workload: sample_insert
+concurrency: 4
+duration_seconds: 15
+target_rate: 0
+report_interval: 3
+table: loadgen_events
+payload_size: 256
+operations: 0

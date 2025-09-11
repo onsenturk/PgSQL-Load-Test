@@ -1,0 +1,2 @@
+[console_scripts]
+pgloadgen = pgloadgen.cli:main

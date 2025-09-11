@@ -1,0 +1,78 @@
+Metadata-Version: 2.4
+Name: pgloadgen
+Version: 0.1.0
+Summary: Async PostgreSQL load generator with modular workloads and latency metrics
+Author-email: Your Name <you@example.com>
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: asyncpg>=0.29.0
+Requires-Dist: click>=8.1.7
+Requires-Dist: PyYAML>=6.0.1
+Requires-Dist: rich>=13.7.1
+Provides-Extra: dev
+Requires-Dist: pytest>=8.2.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.7; extra == "dev"
+Requires-Dist: mypy>=1.10.0; extra == "dev"
+Requires-Dist: ruff>=0.5.0; extra == "dev"
+
+# pgloadgen
+
+Asyncio-based PostgreSQL load generator supporting pluggable workloads, YAML/JSON configuration, and real-time metrics (throughput & latency percentiles).
+
+## Features
+* Async execution using `asyncpg`
+* Concurrency & (optional) rate limiting
+* Pluggable workload modules
+* Latency histogram & percentile calculation (p50, p90, p95, p99, max)
+* Graceful shutdown on CTRL+C
+* CLI with config file or flags
+
+## Quick Start
+Create & activate a virtual environment, then install:
+
+```bash
+pip install -e .[dev]
+```
+
+Example config in `config/example.yaml`:
+```yaml
+dsn: postgresql://user:password@localhost:5432/postgres
+workload: sample_insert
+concurrency: 8
+duration_seconds: 30
+target_rate: 0          # 0 means unlimited
+report_interval: 2
+table: loadgen_events
+payload_size: 128
+```
+
+Run:
+```bash
+pgloadgen run --config config/example.yaml
+```
+
+Or override via flags:
+```bash
+pgloadgen run --dsn postgresql://user:pass@localhost/db --workload sample_insert --concurrency 4 --duration 10
+```
+
+## Workloads
+Workloads live under `pgloadgen/workloads/`. Implement `BaseWorkload` and register with `@register_workload("name")`.
+
+## Metrics
+Latency recorded in microseconds into a fixed histogram. Percentiles derived on demand; overhead is low for high throughput.
+
+## Tests
+Run tests:
+```bash
+pytest
+```
+
+## Next Ideas
+* CSV/JSON export of summary
+* Prometheus metrics endpoint
+* More workload templates (read/update/mixed)
+
+## License
+MIT
