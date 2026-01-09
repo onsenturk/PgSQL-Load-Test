@@ -17,6 +17,16 @@ def common_options(func):
     func = click.option("--start-date", type=str, help="Start date (YYYY-MM-DD) for partition workload")(func)
     func = click.option("--partition-span-days", type=int, help="Span of days to cover with partitions")(func)
     func = click.option("--second-table", is_flag=True, help="Create and use a second partitioned table")(func)
+    func = click.option(
+        "--fk-topology",
+        type=click.Choice(["chain", "star"], case_sensitive=False),
+        help="FK topology for fk_chain_insert: chain (default) or star",
+    )(func)
+    func = click.option(
+        "--fk-reset",
+        is_flag=True,
+        help="For fk_chain_insert: drop/recreate the generated tables before running",
+    )(func)
     return func
 
 
@@ -48,6 +58,8 @@ def run(config_path, **overrides):  # type: ignore[override]
             start_date=overrides.get("start_date") or "2024-01-01",
             partition_span_days=overrides.get("partition_span_days") or 180,
             second_table=overrides.get("second_table") or False,
+            fk_topology=(overrides.get("fk_topology") or "chain"),
+            fk_reset=overrides.get("fk_reset") or False,
         )
 
     # Apply overrides if provided

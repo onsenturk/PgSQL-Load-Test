@@ -1,0 +1,22 @@
+# Example config for the 50-table FK workload
+dsn: postgresql://user:password@localhost:5432/postgres
+workload: fk_chain_insert
+concurrency: 4
+duration_seconds: 15
+target_rate: 0
+report_interval: 3
+
+# FK topology:
+# - chain: table_01 -> table_00 -> ... -> table_49 -> table_48
+# - star:  ~10% tables are hubs; remaining tables reference a hub
+fk_topology: chain
+
+# If you switch topology or want a clean slate, set true to drop/recreate the 50 tables.
+fk_reset: false
+
+# Prefix for generated tables:
+#   loadgen_fk_00 .. loadgen_fk_49
+table: loadgen_fk
+
+payload_size: 256
+operations: 0

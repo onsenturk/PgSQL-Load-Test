@@ -51,6 +51,37 @@ You should see periodic lines with ops, throughput, and latency percentiles, the
 ## Workloads
 Workloads live under `pgloadgen/workloads/`. Implement `BaseWorkload` and register with `@register_workload("name")`.
 
+### FK Chain Insert Workload
+`fk_chain_insert` creates 50 tables named `{table}_00` .. `{table}_49`.
+
+Each table has:
+* a `BIGSERIAL` primary key (`id`)
+* a `DATE` field (`event_date`)
+* 5-10 columns (this workload uses 8)
+* a deferrable FK using either a straight chain or a hub-and-spoke (star)
+
+Each operation inserts one row into each table inside a single transaction.
+
+Topologies:
+* `chain` (default): `{table}_01` references `{table}_00`, `{table}_02` references `{table}_01`, ...
+* `star`: ~10% of tables are hubs; remaining tables reference a hub (hub sizes vary randomly)
+
+Example:
+```bash
+pgloadgen run --dsn postgresql://user:password@host:5432/postgres \
+	--workload fk_chain_insert --concurrency 4 --duration 10 \
+	--table loadgen_fk --payload-size 256
+```
+
+Star topology example:
+```bash
+pgloadgen run --dsn postgresql://user:password@host:5432/postgres \
+	--workload fk_chain_insert --fk-topology star --concurrency 4 --duration 10 \
+	--table loadgen_fk --payload-size 256
+```
+
+If you change topology after tables already exist, Postgres will keep the old FK constraints. Use a new `--table` prefix or pass `--fk-reset` to drop/recreate the 50 tables.
+
 ### Partition Insert Workload
 `partition_insert` creates monthly RANGE partitions on `event_date` over a configurable span and inserts wide rows (10 columns) with random distribution. Optionally create a second table (`--second-table`) to split load across two parents.
 
@@ -94,3 +125,4 @@ pytest
 
 ## License
 MIT
+

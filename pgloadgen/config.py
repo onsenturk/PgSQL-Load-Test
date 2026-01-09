@@ -21,6 +21,8 @@ class LoadGenConfig:
     start_date: str = "2024-01-01"  # for partition workloads
     partition_span_days: int = 180
     second_table: bool = False
+    fk_topology: str = "chain"  # for fk_chain_insert workload: 'chain' or 'star'
+    fk_reset: bool = False  # drop/recreate FK tables for fk_chain_insert
 
     @staticmethod
     def from_mapping(data: dict[str, Any]) -> "LoadGenConfig":
