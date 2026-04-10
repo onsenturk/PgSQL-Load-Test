@@ -27,6 +27,12 @@ def common_options(func):
         is_flag=True,
         help="For fk_chain_insert: drop/recreate the generated tables before running",
     )(func)
+    func = click.option("--think-time", type=float, help="Seconds to sleep between operations (0=none)")(func)
+    func = click.option("--ramp-up", type=float, help="Seconds to stagger worker start-up (0=instant)")(func)
+    func = click.option("--output-file", type=str, help="Path for JSON results export")(func)
+    func = click.option("--read-pct", type=float, help="Read %% for mixed workload (default 50)")(func)
+    func = click.option("--update-pct", type=float, help="Update %% for mixed workload (default 10)")(func)
+    func = click.option("--delete-pct", type=float, help="Delete %% for mixed workload (default 5)")(func)
     return func
 
 
@@ -60,12 +66,21 @@ def run(config_path, **overrides):  # type: ignore[override]
             second_table=overrides.get("second_table") or False,
             fk_topology=(overrides.get("fk_topology") or "chain"),
             fk_reset=overrides.get("fk_reset") or False,
+            think_time=overrides.get("think_time") or 0.0,
+            ramp_up_seconds=overrides.get("ramp_up") or 0.0,
+            output_file=overrides.get("output_file") or "",
+            read_pct=overrides.get("read_pct") or 50.0,
+            update_pct=overrides.get("update_pct") or 10.0,
+            delete_pct=overrides.get("delete_pct") or 5.0,
         )
 
     # Apply overrides if provided
+    override_map = {"duration": "duration_seconds", "ramp_up": "ramp_up_seconds"}
     for field, value in overrides.items():
-        if value is not None and hasattr(cfg, field):
-            setattr(cfg, field, value)
+        if value is not None:
+            attr = override_map.get(field, field)
+            if hasattr(cfg, attr):
+                setattr(cfg, attr, value)
     run_load_test(cfg)
 
 

@@ -23,6 +23,12 @@ class LoadGenConfig:
     second_table: bool = False
     fk_topology: str = "chain"  # for fk_chain_insert workload: 'chain' or 'star'
     fk_reset: bool = False  # drop/recreate FK tables for fk_chain_insert
+    think_time: float = 0.0  # seconds to sleep between operations
+    ramp_up_seconds: float = 0.0  # gradual worker start-up period
+    output_file: str = ""  # path for JSON results export (empty = no export)
+    read_pct: float = 50.0  # read percentage for mixed workload
+    update_pct: float = 10.0  # update percentage for mixed workload
+    delete_pct: float = 5.0  # delete percentage for mixed workload
 
     @staticmethod
     def from_mapping(data: dict[str, Any]) -> "LoadGenConfig":

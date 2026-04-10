@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "github.copilot",
+    "github.copilot-chat",
+    "github.vscode-pull-request-github",
+    "ms-azuretools.vscode-azure-github-copilot",
+    "ms-azuretools.vscode-bicep",
+    "ms-python.vscode-pylance",
+    "ms-ossdata.vscode-postgresql",
+    "ms-windows-ai-studio.windows-ai-studio"
+  ]
+}

@@ -14,6 +14,7 @@ class MetricsSnapshot:
     errors: int
     throughput: float
     percentiles: dict[str, float]
+    error_categories: dict[str, int]
 
 
 class LatencyHistogram:
@@ -69,6 +70,7 @@ class MetricsRecorder:
         self._hist = LatencyHistogram()
         self._operations = 0
         self._errors = 0
+        self._error_categories: dict[str, int] = {}
         self._start = time.perf_counter()
         self._lock = threading.Lock()
 
@@ -77,9 +79,10 @@ class MetricsRecorder:
         with self._lock:
             self._operations += 1
 
-    def record_error(self) -> None:
+    def record_error(self, category: str = "unknown") -> None:
         with self._lock:
             self._errors += 1
+            self._error_categories[category] = self._error_categories.get(category, 0) + 1
 
     def snapshot(self) -> MetricsSnapshot:
         now = time.perf_counter()
@@ -87,6 +90,7 @@ class MetricsRecorder:
         with self._lock:
             ops = self._operations
             errs = self._errors
+            err_cats = dict(self._error_categories)
         throughput = ops / elapsed if elapsed > 0 else 0.0
         percentiles = self._hist.percentiles([50, 90, 95, 99])
         return MetricsSnapshot(
@@ -95,6 +99,7 @@ class MetricsRecorder:
             errors=errs,
             throughput=throughput,
             percentiles=percentiles,
+            error_categories=err_cats,
         )
 
     @property

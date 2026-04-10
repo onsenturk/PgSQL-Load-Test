@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 import time
 import traceback
+from pathlib import Path
 import asyncpg
 from .config import LoadGenConfig
 from .metrics import MetricsRecorder
@@ -30,6 +32,10 @@ def _instantiate_workload(workload_cls, config: LoadGenConfig):
         # FK workload options
         "fk_topology": config.fk_topology,
         "fk_reset": config.fk_reset,
+        # Mixed workload options
+        "read_pct": config.read_pct,
+        "update_pct": config.update_pct,
+        "delete_pct": config.delete_pct,
     }
 
     sig = inspect.signature(workload_cls.__init__)
@@ -49,7 +55,13 @@ async def worker_task(
     metrics: MetricsRecorder,
     stop_time: float,
     target_rate: float,
+    worker_index: int = 0,
 ):
+    # Ramp-up: stagger worker starts
+    if config.ramp_up_seconds > 0 and worker_index > 0:
+        delay = (config.ramp_up_seconds / config.concurrency) * worker_index
+        await asyncio.sleep(delay)
+
     op_index = 0
     while time.perf_counter() < stop_time:
         if config.operations and metrics.operations >= config.operations:
@@ -67,8 +79,22 @@ async def worker_task(
                 await workload.execute(conn)
             end = time.perf_counter()
             metrics.record(end - start)
+        except asyncpg.InterfaceError:
+            metrics.record_error("connection")
+        except asyncpg.ForeignKeyViolationError:
+            metrics.record_error("fk_violation")
+        except asyncpg.UniqueViolationError:
+            metrics.record_error("unique_violation")
+        except asyncpg.QueryCanceledError:
+            metrics.record_error("timeout")
+        except asyncpg.PostgresError as e:
+            metrics.record_error(f"postgres:{e.sqlstate}")
         except Exception:  # pragma: no cover - broad catch for load test robustness
-            metrics.record_error()
+            metrics.record_error("unknown")
+
+        # Think time between operations
+        if config.think_time > 0:
+            await asyncio.sleep(config.think_time)
 
 
 async def run_async(config: LoadGenConfig):
@@ -88,11 +114,12 @@ async def run_async(config: LoadGenConfig):
         stop_time = time.perf_counter() + config.duration_seconds
         target_rate = config.target_rate
         tasks = [
-            asyncio.create_task(worker_task(pool, workload, config, metrics, stop_time, target_rate))
-            for _ in range(config.concurrency)
+            asyncio.create_task(worker_task(pool, workload, config, metrics, stop_time, target_rate, i))
+            for i in range(config.concurrency)
         ]
 
         task_results = None
+        interval_snapshots: list[dict] = []
 
         try:
             last_report = 0.0
@@ -101,6 +128,14 @@ async def run_async(config: LoadGenConfig):
                 snap = metrics.snapshot()
                 if snap.elapsed - last_report >= config.report_interval:
                     last_report = snap.elapsed
+                    interval_snapshots.append({
+                        "elapsed": round(snap.elapsed, 2),
+                        "operations": snap.operations,
+                        "errors": snap.errors,
+                        "throughput": round(snap.throughput, 1),
+                        "percentiles_ms": {k: round(v * 1000, 3) for k, v in snap.percentiles.items()},
+                        "error_categories": dict(snap.error_categories),
+                    })
                     console.print(
                         f"[blue]{snap.elapsed:6.1f}s[/] ops={snap.operations} err={snap.errors} thr={snap.throughput:,.1f}/s "
                         + " ".join(f"{k}={v*1000:.2f}ms" for k, v in snap.percentiles.items())
@@ -134,6 +169,34 @@ async def run_async(config: LoadGenConfig):
     console.print(
         "Percentiles: " + ", ".join(f"{k}={v*1000:.2f}ms" for k, v in snap.percentiles.items())
     )
+    if snap.error_categories:
+        console.print(
+            "[yellow]Error breakdown:[/yellow] "
+            + ", ".join(f"{k}={v}" for k, v in sorted(snap.error_categories.items()))
+        )
+
+    if config.output_file:
+        export = {
+            "config": {
+                "workload": config.workload,
+                "concurrency": config.concurrency,
+                "duration_seconds": config.duration_seconds,
+                "target_rate": config.target_rate,
+                "think_time": config.think_time,
+                "ramp_up_seconds": config.ramp_up_seconds,
+            },
+            "summary": {
+                "elapsed": round(snap.elapsed, 2),
+                "operations": snap.operations,
+                "errors": snap.errors,
+                "throughput": round(snap.throughput, 1),
+                "percentiles_ms": {k: round(v * 1000, 3) for k, v in snap.percentiles.items()},
+                "error_categories": snap.error_categories,
+            },
+            "intervals": interval_snapshots,
+        }
+        Path(config.output_file).write_text(json.dumps(export, indent=2), encoding="utf-8")
+        console.print(f"[green]Results exported to {config.output_file}[/green]")
 
 
 def run_load_test(config: LoadGenConfig):

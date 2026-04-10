@@ -1,0 +1,47 @@
+{
+	"servers": {
+		"workiq": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@microsoft/workiq@latest",
+				"mcp"
+			],
+			"tools": [
+				"*"
+			],
+			"type": "stdio"
+		},
+		"playwright": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@playwright/mcp@latest"
+			],
+			"type": "stdio"
+		},
+		"sequential-thinking": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-sequential-thinking"
+			],
+			"type": "stdio"
+		},
+		"awesome-copilot": {
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot:latest"
+			],
+			"type": "stdio"
+		},
+		"microsoftdocs": {
+			"url": "https://learn.microsoft.com/api/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}
