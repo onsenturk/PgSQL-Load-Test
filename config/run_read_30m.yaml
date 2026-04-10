@@ -1,0 +1,11 @@
+dsn: "postgresql://pgadmin:DataBase123__@pgfs-demo-loadtest.postgres.database.azure.com:5432/postgres?sslmode=require"
+workload: read_query
+concurrency: 16
+duration_seconds: 1800
+target_rate: 0
+report_interval: 60
+table: loadgen_read
+payload_size: 128
+think_time: 0.002
+ramp_up_seconds: 15
+output_file: results_read.json

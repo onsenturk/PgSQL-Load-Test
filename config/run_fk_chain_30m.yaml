@@ -1,0 +1,13 @@
+dsn: "postgresql://pgadmin:DataBase123__@pgfs-demo-loadtest.postgres.database.azure.com:5432/postgres?sslmode=require"
+workload: fk_chain_insert
+concurrency: 8
+duration_seconds: 1800
+target_rate: 0
+report_interval: 60
+table: loadgen_fk
+payload_size: 64
+think_time: 0.01
+ramp_up_seconds: 20
+output_file: results_fk_chain.json
+fk_topology: chain
+fk_reset: true

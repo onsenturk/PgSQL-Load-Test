@@ -1,0 +1,14 @@
+dsn: "postgresql://pgadmin:DataBase123__@pgfs-demo-loadtest.postgres.database.azure.com:5432/postgres?sslmode=require"
+workload: mixed
+concurrency: 16
+duration_seconds: 1800
+target_rate: 0
+report_interval: 60
+table: loadgen_mixed
+payload_size: 128
+think_time: 0.005
+ramp_up_seconds: 30
+output_file: results_mixed.json
+read_pct: 60
+update_pct: 20
+delete_pct: 10
